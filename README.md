@@ -12,7 +12,7 @@ https://www.loom.com/share/35be996ae11d40398f4e9ea38a2072bf
 ---
 
 ## Folder Structure
-
+```
 vestaff-assignment/
 ├── backend/                       
 │   ├── app.py
@@ -32,7 +32,7 @@ vestaff-assignment/
 ├── requirements.txt
 ├── .env.example
 └── README.md
-
+```
 ---
 
 ## Architecture overview
