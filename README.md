@@ -42,6 +42,152 @@ vestaff-assignment/
 [Diagrams Link](https://drive.google.com/file/d/1cRMqlF0qmNd_tH0pu0VmcBOt0iETwg4p/view?usp=sharing)
 
 
+---
+
+## Embedding Model Used
+
+The project uses **sentence-transformers/all-MiniLM-L6-v2** from Hugging Face for generating vector embeddings.
+
+**Why this model?**
+- Lightweight and fast
+- Good semantic search performance
+- Open-source and free to use
+- Well-suited for Retrieval-Augmented Generation (RAG) applications
+
+---
+
+## Vector Database Used
+
+The project uses **ChromaDB** as the vector store.
+
+**Why ChromaDB?**
+- Simple local deployment
+- Seamless integration with LangChain
+- Efficient similarity search
+- No external database server required
+
+---
+
+## SQL Schema
+
+The application logs every query to a SQLite database for analytics purposes.
+
+### Table: `query_logs`
+
+| Column | Type | Description |
+|----------|----------|-------------|
+| id | INTEGER | Primary Key |
+| question | STRING(2000) | User query |
+| answer | TEXT | Generated answer |
+| retrieved_chunks | TEXT | Top_k i.e. 3 chunks |
+| answer_found | BOOLEAN | Indicates whether an answer was found in the document |
+| latency_ms | FLOAT | Response time in milliseconds |
+| timestamp | DATETIME | Time of query execution |
+
+This schema enables tracking user interactions and generating analytics from historical query data.
+
+---
+
+## Analytics Queries
+
+The analytics dashboard is powered by SQL queries executed on the query logs database.
+
+### Total Queries
+
+```sql
+SELECT COUNT(id)
+FROM query_logs;
+```
+
+### Average Response Latency
+
+```sql
+SELECT AVG(latency_seconds)
+FROM query_logs;
+```
+
+### Success Rate
+
+```sql
+SELECT
+    (COUNT(CASE WHEN answer_found = 1 THEN 1 END) * 100.0)
+    / COUNT(*) AS success_rate
+FROM query_logs;
+```
+
+### Most Frequently Asked Questions
+
+```sql
+SELECT question, COUNT(*) AS frequency
+FROM query_logs
+GROUP BY question
+ORDER BY frequency DESC
+LIMIT 10;
+```
+
+### Queries with No Answer Found
+
+```sql
+SELECT DISTINCT question
+FROM query_logs
+WHERE answer_found = 0;
+```
+
+---
+
+## Key Design Decisions
+
+### Chunking Strategy
+
+I went with chunk_size=1000 characters and chunk_overlap=200.
+
+This is a legal document so the clauses are long. If I used something small like 200-300 characters I'd be cutting sentences in half and the chunk wouldn't make any sense when retrieved. 1000 characters is around 150 words which is enough to hold one complete legal thought.
+
+The overlap of 200 is just so I don't lose context at the boundary between two chunks. If a clause starts near the end of chunk 1 and finishes in chunk 2, without overlap neither chunk has the full thing. 200 characters repeated across both solves that.
+
+Also the splitter I used (RecursiveCharacterTextSplitter) doesn't just cut at exactly 1000 characters. It tries paragraph breaks first, then sentences, then words. Raw character cutting is the last resort. So chunks almost always end at natural points.
+
+
+
+### Top-k Retrieval
+
+I set k=3 — so 3 chunks get retrieved per question.
+
+k=1 is not enough because one chunk can miss relevant parts that are spread across different sections of the document.
+
+k=5 is too many. That's 5000 characters of context going into the prompt which makes the LLM slow, costs more tokens, and actually makes answers worse because the model loses focus in long contexts.
+
+3 chunks gives roughly 3000 characters of context which is focused enough to be useful without being overwhelming for a 12-page document.
+
+And by try and error k=3 was best fit giving relevant chunks need to answer the question.
+
+
+### Anti-Hallucination
+
+The prompt tells the LLM that if it can't find the answer in the context it must respond with exactly:
+
+"The requested information is not present in the AWS Customer Agreement."
+
+Then after the response comes back the code just checks:
+
+pythonanswer_found = NO_ANSWER_RESPONSE.lower() not in answer.lower()
+
+If that phrase is in the answer, answer_found = False gets stored in SQLite and shows up in the analytics dashboard under no-answer queries.
+
+I didn't use similarity score thresholds because ChromaDB always returns k results regardless. Even for a totally out-of-scope question like "what's the weather", it still returns 3 chunks — they're just the "least wrong" ones. There's no meaningful cutoff score to detect that. Letting the LLM decide is simpler and actually works.
+
+
+### Singleton Pattern
+
+The embedding model, vector store, and LLM client are all expensive to create. Loading the HuggingFace model alone takes 3-4 seconds. If I created them fresh on every request the app would be unusably slow.
+
+So all three are stored as module-level variables starting as None:
+
+python_embeddings: HuggingFaceEmbeddings | None = None
+_vectorstore: Chroma | None = None
+_llm: ChatGroq | None = None
+
+Each has a getter that creates the object on first call and caches it. After that every call just returns the same object. Load once, reuse forever.
 
 ---
 
@@ -124,61 +270,6 @@ streamlit run frontend/streamlit.py
 3. Wait for the success message.
 4. Start asking questions in the Chat tab.
 
----
-
-## Key Design Decisions
-
-### Chunking Strategy
-
-I went with chunk_size=1000 characters and chunk_overlap=200.
-
-This is a legal document so the clauses are long. If I used something small like 200-300 characters I'd be cutting sentences in half and the chunk wouldn't make any sense when retrieved. 1000 characters is around 150 words which is enough to hold one complete legal thought.
-
-The overlap of 200 is just so I don't lose context at the boundary between two chunks. If a clause starts near the end of chunk 1 and finishes in chunk 2, without overlap neither chunk has the full thing. 200 characters repeated across both solves that.
-
-Also the splitter I used (RecursiveCharacterTextSplitter) doesn't just cut at exactly 1000 characters. It tries paragraph breaks first, then sentences, then words. Raw character cutting is the last resort. So chunks almost always end at natural points.
-
-
-
-### Top-k Retrieval
-
-I set k=3 — so 3 chunks get retrieved per question.
-
-k=1 is not enough because one chunk can miss relevant parts that are spread across different sections of the document.
-
-k=5 is too many. That's 5000 characters of context going into the prompt which makes the LLM slow, costs more tokens, and actually makes answers worse because the model loses focus in long contexts.
-
-3 chunks gives roughly 3000 characters of context which is focused enough to be useful without being overwhelming for a 12-page document.
-
-And by try and error k=3 was best fit giving relevant chunks need to answer the question.
-
-
-### Anti-Hallucination
-
-The prompt tells the LLM that if it can't find the answer in the context it must respond with exactly:
-
-"The requested information is not present in the AWS Customer Agreement."
-
-Then after the response comes back the code just checks:
-
-pythonanswer_found = NO_ANSWER_RESPONSE.lower() not in answer.lower()
-
-If that phrase is in the answer, answer_found = False gets stored in SQLite and shows up in the analytics dashboard under no-answer queries.
-
-I didn't use similarity score thresholds because ChromaDB always returns k results regardless. Even for a totally out-of-scope question like "what's the weather", it still returns 3 chunks — they're just the "least wrong" ones. There's no meaningful cutoff score to detect that. Letting the LLM decide is simpler and actually works.
-
-
-### Singleton Pattern
-
-The embedding model, vector store, and LLM client are all expensive to create. Loading the HuggingFace model alone takes 3-4 seconds. If I created them fresh on every request the app would be unusably slow.
-
-So all three are stored as module-level variables starting as None:
-
-python_embeddings: HuggingFaceEmbeddings | None = None
-_vectorstore: Chroma | None = None
-_llm: ChatGroq | None = None
-
-Each has a getter that creates the object on first call and caches it. After that every call just returns the same object. Load once, reuse forever.
 
 ---
 
