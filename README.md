@@ -11,6 +11,30 @@ https://www.loom.com/share/35be996ae11d40398f4e9ea38a2072bf
 
 ---
 
+## Folder Structure
+
+vestaff-assignment/
+├── backend/                       
+│   ├── app.py
+│   ├── config.py 
+│   ├── database.py
+│   ├── models.py
+│   ├── schemas.py
+│   ├── rag.py
+│   ├── analytics.py   
+│   └── utils.py
+├── frontend/
+│   └── streamlit.py
+├── data/
+│   └── aws_customer_agreement.pdf
+├── chyroma_db/
+├── query_logs.db
+├── requirements.txt
+├── .env.example
+└── README.md
+
+---
+
 ## Architecture overview
 
 
