@@ -187,3 +187,5 @@ Each has a getter that creates the object on first call and caches it. After tha
 for ORM : https://docs.sqlalchemy.org/en/20/orm/quickstart.html
 
 for Query in SQLAlchemy : https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.count
+
+for frontend ui : https://docs.streamlit.io/
