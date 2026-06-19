@@ -1,9 +1,28 @@
+# RAG Document Q&A System with Analytics Dashboard
+ 
+A **Retrieval-Augmented Generation (RAG)** system that answers natural-language questions about the AWS Customer Agreement PDF. Every query is logged to SQLite and an analytics dashboard surfaces operational insights — most asked questions, success rate, and average response latency.
+ 
+Built with FastAPI, LangChain, ChromaDB, HuggingFace Embeddings, Groq LLM, and Streamlit.
+ 
+---
+
+## Video Demo
+https://www.loom.com/share/35be996ae11d40398f4e9ea38a2072bf
+
+---
+
+## Architecture overview
+
+
+
+---
+
 ## Setup Instructions
 
 ### 1. Clone the Repository
 
 ```bash
-git clone <>
+git clone <https://github.com/yadavabhishekz/vestaff-assignment>
 cd assignement
 ```
 
@@ -78,3 +97,55 @@ streamlit run frontend/streamlit.py
 4. Start asking questions in the Chat tab.
 
 ---
+
+## Key Design Decisions
+
+### Chunking Strategy
+
+I went with chunk_size=1000 characters and chunk_overlap=200.
+
+This is a legal document so the clauses are long. If I used something small like 200-300 characters I'd be cutting sentences in half and the chunk wouldn't make any sense when retrieved. 1000 characters is around 150 words which is enough to hold one complete legal thought.
+
+The overlap of 200 is just so I don't lose context at the boundary between two chunks. If a clause starts near the end of chunk 1 and finishes in chunk 2, without overlap neither chunk has the full thing. 200 characters repeated across both solves that.
+
+Also the splitter I used (RecursiveCharacterTextSplitter) doesn't just cut at exactly 1000 characters. It tries paragraph breaks first, then sentences, then words. Raw character cutting is the last resort. So chunks almost always end at natural points.
+
+
+
+### Top-k Retrieval
+
+I set k=3 — so 3 chunks get retrieved per question.
+
+k=1 is not enough because one chunk can miss relevant parts that are spread across different sections of the document.
+
+k=10 is too many. That's 10,000 characters of context going into the prompt which makes the LLM slow, costs more tokens, and actually makes answers worse because the model loses focus in long contexts.
+
+3 chunks gives roughly 3000 characters of context which is focused enough to be useful without being overwhelming for a 12-page document.
+
+
+### Anti-Hallucination
+
+The prompt tells the LLM that if it can't find the answer in the context it must respond with exactly:
+
+"The requested information is not present in the AWS Customer Agreement."
+
+Then after the response comes back the code just checks:
+
+pythonanswer_found = NO_ANSWER_RESPONSE.lower() not in answer.lower()
+
+If that phrase is in the answer, answer_found = False gets stored in SQLite and shows up in the analytics dashboard under no-answer queries.
+
+I didn't use similarity score thresholds because ChromaDB always returns k results regardless. Even for a totally out-of-scope question like "what's the weather", it still returns 3 chunks — they're just the "least wrong" ones. There's no meaningful cutoff score to detect that. Letting the LLM decide is simpler and actually works.
+
+
+### Singleton Pattern
+
+The embedding model, vector store, and LLM client are all expensive to create. Loading the HuggingFace model alone takes 3-4 seconds. If I created them fresh on every request the app would be unusably slow.
+
+So all three are stored as module-level variables starting as None:
+
+python_embeddings: HuggingFaceEmbeddings | None = None
+_vectorstore: Chroma | None = None
+_llm: ChatGroq | None = None
+
+Each has a getter that creates the object on first call and caches it. After that every call just returns the same object. Load once, reuse forever.
