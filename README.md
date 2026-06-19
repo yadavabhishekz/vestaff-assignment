@@ -149,3 +149,12 @@ _vectorstore: Chroma | None = None
 _llm: ChatGroq | None = None
 
 Each has a getter that creates the object on first call and caches it. After that every call just returns the same object. Load once, reuse forever.
+
+---
+
+## Documentaion used
+
+### For SQLAlchemy 
+
+for ORM : https://docs.sqlalchemy.org/en/20/orm/quickstart.html
+for Query in SQLAlchemy : https://docs.sqlalchemy.org/en/14/orm/query.html#sqlalchemy.orm.Query.count
