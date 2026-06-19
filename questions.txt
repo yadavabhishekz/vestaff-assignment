@@ -1,0 +1,45 @@
+VALID QUESITONS
+
+What are AWS's general responsibilities under this agreement?
+How does AWS handle third-party content?
+What security measures does AWS provide for customer content?
+Can AWS access my content stored on its services?
+Under what circumstances can AWS disclose my content?
+Can AWS move my content between AWS regions?
+How much notice will AWS provide before discontinuing a service?
+How much advance notice is required for changes to Service Level Agreements?
+What are my responsibilities regarding my AWS account?
+Am I responsible for activities performed under my account?
+What responsibilities do I have regarding my content?
+What security responsibilities belong to me rather than AWS?
+Am I responsible for backing up my data?
+Can I share AWS login credentials with others?
+Who is considered an End User under this agreement?
+What happens if an End User violates the agreement?
+How often does AWS calculate and bill service fees?
+Can AWS bill customers more frequently than monthly?
+What happens if a payment is late?
+How much interest can AWS charge on late payments?
+Can AWS increase service fees?
+How much notice must AWS provide before increasing fees?
+Who is responsible for taxes under this agreement?
+What information may AWS require to determine tax obligations?
+Under what conditions can AWS suspend an account?
+Can AWS suspend services due to security risks?
+Can AWS suspend services because of non-payment?
+Can AWS suspend services if fraudulent activity is suspected?
+What happens during a suspension period?
+Am I still responsible for fees while suspended?
+
+invalid
+
+Who is the CEO of Amazon?
+What is AWS's annual revenue?
+When was Amazon founded?
+What programming languages does AWS support?
+What is the salary of AWS employees?
+Who won the IPL 2026 championship?
+What is the market share of AWS cloud services?
+What machine learning models does AWS use internally?
+What are the current AWS stock prices?
+What is Jeff Bezos's net worth?
