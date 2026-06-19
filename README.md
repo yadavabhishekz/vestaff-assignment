@@ -37,6 +37,8 @@ vestaff-assignment/
 
 ## Architecture overview
 
+![Architechture](assets/architect.jpg)
+[Diagram Link](https://drive.google.com/file/d/1cRMqlF0qmNd_tH0pu0VmcBOt0iETwg4p/view?usp=sharing)
 
 
 ---
