@@ -146,9 +146,11 @@ I set k=3 — so 3 chunks get retrieved per question.
 
 k=1 is not enough because one chunk can miss relevant parts that are spread across different sections of the document.
 
-k=10 is too many. That's 10,000 characters of context going into the prompt which makes the LLM slow, costs more tokens, and actually makes answers worse because the model loses focus in long contexts.
+k=5 is too many. That's 5000 characters of context going into the prompt which makes the LLM slow, costs more tokens, and actually makes answers worse because the model loses focus in long contexts.
 
 3 chunks gives roughly 3000 characters of context which is focused enough to be useful without being overwhelming for a 12-page document.
+
+And by try and error k=3 was best fit giving relevant chunks need to answer the question.
 
 
 ### Anti-Hallucination
